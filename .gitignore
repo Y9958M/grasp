@@ -1,0 +1,16 @@
+/__pycache__/
+main/__pycache__
+main/logs
+main/upload
+
+.mypy_cache
+.history
+.venv
+.vscode
+
+logs/
+instantclient_11_2
+
+test*
+*.log
+t_*

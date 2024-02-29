@@ -1,0 +1,15 @@
+AMQP_URI: 'pyamqp://dev5677:dev5677@192.168.10.56:5677/shmartdev'
+WEB_SERVER_ADDRESS: '192.168.10.56:15677'
+rpc_exchange: 'nameko-rpc'
+max_workers: 2
+parent_calls_tracked: 2
+
+LOGGING:
+    version: 1
+    handlers:
+        console:
+            class: logging.StreamHandler
+    root:
+        level: DEBUG
+        handlers: [console]
+        
