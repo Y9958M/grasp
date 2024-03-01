@@ -10,7 +10,7 @@ from nameko.dependency_providers import DependencyProvider  # type: ignore
 from nameko.rpc import rpc, RpcProxy  # type: ignore
 
 from graspBasic import HandleLog,msgWrapper,MESSAGE
-from graspFun import supChkAndIns, proChkAndIns, invCheck,supSwap,proSwap,graspSupInvStatus
+from graspFun import supChkAndIns, proChkAndIns, invCheck,swapSup,swapPro,graspInvSupStatus,graspInvBraStatus,braNoInfo,proNoInfo
 from graspAcc import graspAccountMain
 
 log = HandleLog('grasp-service')
@@ -116,10 +116,6 @@ class GRASPService(object):
                 continue
         message['remark'] = f"非法 记录数:{rc_continue} 存在 记录数：{rc_in} 插入 成功数：{rc_sucess}"
         message['count'] = rc_continue + rc_sucess + rc_in
-        # 更新 REDIS
-        # if rc_sucess > 0 or len(lj_args)==0:
-        #     socialCreditCodeToRedis()
-        # message['code'] = 200
         return message
 
     @rpc
@@ -149,7 +145,7 @@ class GRASPService(object):
 
     @rpc
     @msgWrapper(ldt=20240229,s_func_remark='供应商单据生成')
-    def cBlSupInvUp(self, j_args):
+    def cBlInvSupUp(self, j_args):
         message = MESSAGE.copy()
         # 检查已开票信息
         idno_list = []
@@ -167,9 +163,10 @@ class GRASPService(object):
             return j_
         # 开票明细目录组装  dtl = [{}] hdr = [{}]  cBillid
         bill_list = []
-        userid =   j_args['INFO'][0]['userid']
+        userid =    j_args['INFO'][0]['userid']
         remark =    j_args['INFO'][0]['file_name']
-        bltid =   j_args['INFO'][0]['bltid']
+        bltid =     j_args['INFO'][0]['bltid']
+        code_from =    j_args['INFO'][0]['code_from']
         hdr_list =[]
         inv_bill_dic = {}   # 发票和单号对应
         row_dic = {}
@@ -185,7 +182,7 @@ class GRASPService(object):
             else:
                 billid = j_ym_res.get('billid','-99')
             tax_code = dic.get('tax_code','')
-            sup_no = supSwap(tax_code)
+            sup_no = swapSup(tax_code)
             if sup_no <1:
                 message.update({'msg':f'tax_code:{tax_code} 未匹配供应商 sup_no'})
                 return message
@@ -201,7 +198,7 @@ class GRASPService(object):
             row_dic['buyer_name'] = dic['pur_name']
             row_dic['out_storage_no'] = sup_no
             row_dic['in_storage_no'] = 1901    # < 默认总部仓库 
-            row_dic['fromid'] = 3
+            row_dic['code_from'] = code_from
             row_dic['inv_id'] = dic['inv_id']
             row_dic['inv_no'] = dic['inv_no']
             row_dic['inv_name'] = dic['inv_name']
@@ -209,8 +206,8 @@ class GRASPService(object):
             row_dic['check_id'] = dic['check_id']
             row_dic['machine_no'] = dic['machine_no']
             row_dic['taxpayer_id'] = tax_code
-            row_dic['fi_addr'] = dic['addr']
-            row_dic['fi_tel']  = dic['tel']
+            row_dic['fi_addr'] = dic['fi_addr']
+            row_dic['fi_tel']  = dic['fi_tel']
             row_dic['accounts_back'] = dic['accounts_bank']
             row_dic['accounts_code'] = dic['accounts_code']
             row_dic['userid'] = userid
@@ -225,7 +222,7 @@ class GRASPService(object):
             row_dic ={}
             inv_idno = dic['inv_idno']
             grasp_pro = dic.get('grasp_pro','')
-            pro_no = proSwap(grasp_pro)
+            pro_no = swapPro(grasp_pro)
             if pro_no <1:
                 message.update({'msg':f'{grasp_pro} 未匹配商品 pro_no 请重新导入'})
                 return message
@@ -244,7 +241,7 @@ class GRASPService(object):
 
         # 更新主表 状态为未审核 一个事务
         j_.clear()
-        j_ = graspSupInvStatus(hdr_list,dtl_list)
+        j_ = graspInvSupStatus(hdr_list,dtl_list)
         if j_['code'] > 200:
             return j_
         message['code'] = 200
@@ -253,9 +250,112 @@ class GRASPService(object):
         return message
 
 
-    # @rpc
-    # def cBlBraInvUp(self, args_dict):
-    #     return msgJson(blBraInvUp(args_dict))
+    @rpc
+    @msgWrapper(ldt=20240229,s_func_remark='供应商单据生成')
+    def cBlInvBraUp(self, j_args):
+        message = MESSAGE.copy()
+        # 检查入参
+        # idno_list = []
+        if 'pro_list' not in j_args:
+            message['msg'] = '入参异常'
+            return message
+        
+        # 开票明细目录组装  dtl = [{}] hdr = [{}]  0613增加类型1门店销售2门店退仓
+        bltid =     j_args['INFO'][0]['bltid']
+        userid =    j_args['INFO'][0]['userid']
+        remark =    j_args['INFO'][0]['file_name']
+        code_from = j_args['INFO'][0]['code_from']
+        hdr_list = []
+        dtl_list = []
+        bill_list = []      # 生成的单号
+        bra_bill_dic = {}   # 门店和单号对应
+        brainfo_dict = {}
+        row_dic = {}
+        rc = 0
+        
+        for dic in j_args['pro_list']:
+            rc += 1
+            # 先判断下门店有没缓存
+            bra_no = dic['bra_no']
+            brainfo_dict = braNoInfo(bra_no)
+            log.info(brainfo_dict,'brainfo_dict')
+      
+            # 没取到单号 没有就取缓存生成新单号
+            if bra_no not in bra_bill_dic.keys():
+                j_ym_res = json.loads(self.YM.cBillid('GRASP_BL_INVBRA_HDR',bltid))
+                if j_ym_res['code']> 200:
+                    message.update({'msg':'通用单据取值失败'})
+                    log.error(j_ym_res)
+                    return message
+                else:
+                    billid = j_ym_res.get('billid','-99')
+                bra_bill_dic[bra_no] = billid
+                bill_list.append(billid)
+                # 这里存表头信息
+                row_dic = {}
+                row_dic['billid'] = billid
+                row_dic['bltid'] = bltid
+                row_dic['blsid'] = 1
+                row_dic['supplier_no'] = '01901'
+                row_dic['supplier_name'] = '昆山市优哈商贸有限公司'
+                row_dic['buyer_no'] = brainfo_dict['bra_no']
+                row_dic['buyer_name'] = brainfo_dict['bra_name']
+                row_dic['out_storage_no'] = 1901
+                row_dic['in_storage_no'] = bra_no
+                row_dic['code_from'] = code_from
+                row_dic['fi_addr'] = brainfo_dict['fi_addr']
+                row_dic['fi_tel'] = brainfo_dict['fi_tel']
+                row_dic['buyer_tax_code'] = brainfo_dict['tax_code']
+                row_dic['accounts_bank'] = brainfo_dict['accounts_bank']
+                row_dic['accounts_code'] = brainfo_dict['accounts_code']
+                row_dic['userid'] = userid
+                row_dic['remark'] = remark
+                hdr_list.append(row_dic)
+            else:
+                billid = bra_bill_dic[bra_no]
+            # 取商品信息 从MYSQL查询 要用商品编码来确认 
+            row_dic ={}
+            grasp_pro = f"{dic['pro_name']}{dic['spec']}{dic['units']}"
+
+            j_prd = proNoInfo(grasp_pro)
+            if 'pro_no' not in j_prd:
+                message['msg'] = f"无 {grasp_pro} 对应商品资料 是否供应商未开票 "
+                return message
+            else:
+                tmp_name_list = j_prd['pro_name'].split('*',2)
+                if len(tmp_name_list) < 3:
+                    row_dic['pro_name'] = j_prd['pro_name']
+                else:
+                    row_dic['pro_name'] = tmp_name_list[2]
+            row_dic['billid'] = billid
+            row_dic['pro_no'] = j_prd['pro_no']
+            row_dic['spec'] = j_prd['spec']
+            row_dic['units'] = j_prd['units']
+            qty = dic['qty_sale']
+            price = float(j_prd['price_sale'])
+            rat_tax_sale = j_prd['rat_tax_sale']
+            if rat_tax_sale > 30:
+                message['msg'] = f'税率异常为{rat_tax_sale} 请至开票商品处修改'
+                return message
+            row_dic['qty_sale'] = qty
+            row_dic['price_sale'] = price
+            row_dic['amt'] = price * qty
+            row_dic['tax'] = rat_tax_sale * price * qty/100   # 20220611 row_dic['tax'] = sale_ratio * price * qty/(100 + sale_ratio)
+            row_dic['rat_tax_sale'] = rat_tax_sale
+            row_dic['flow_no'] = dic['flow_no']
+            dtl_list.append(row_dic)
+        log.debug(hdr_list,'hdr_list')
+        log.debug(dtl_list,'dtl_list')
+        # 更新主表 状态为未审核 一个事务
+        j_ = dict()
+        j_ = graspInvBraStatus(hdr_list,dtl_list)
+        if j_['code'] > 200:
+            return j_
+        message['code'] = 200
+        message['mgs'] = 'sucess' 
+        message['count'] = rc
+        message['bill_list'] = bill_list
+        return message
 
     @rpc    # 通用入账
     @msgWrapper(ldt=20240229,s_func_remark='通用入账')

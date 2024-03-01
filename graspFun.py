@@ -7,20 +7,8 @@ from graspBasic import MESSAGE, SID, HandleLog, engine
 
 from graspMod import (GraspSupplier,GraspProduct,GraspBranch,GraspOnhand,GraspWba
                       ,GraspBlInvbraHdr,GraspBlInvbraDtl,GraspBlInvsupHdr,GraspBlInvsupDtl)
-# from common.fac import commonQueryKV
 
 log = HandleLog(__name__,i_c_level=10,i_f_level=20)
-
-
-# redis_pool = redis.ConnectionPool(
-#     host    =   DB_LINK['REDIS']['HOST'],
-#     password =  DB_LINK['REDIS']['PWD'],
-#     port =      DB_LINK['REDIS']['PORT'],
-#     db =        DB_LINK['REDIS']['DB'],
-#     decode_responses=True,
-#     encoding='utf-8')
-# rs = redis.Redis(connection_pool=redis_pool)
-# pipe = rs.pipeline()
 
 # author  :don
 # date    :2022-09-30
@@ -43,41 +31,6 @@ def invCheck(arg_list):
     log.debug(f" <<< {message['fun']} ")
     return message
 
-
-# # 检查grasp供应商 没有需要自动生成 
-# def graspSupChkAndIns(j_args):
-#     message = MESSAGE.copy()
-#     message['fun'] = 'graspSupChkAndIns'
-#     log.debug(f">>> {message['fun']} 检查 grasp供应商 没有需要自动生成  {j_args}")
-    
-#     stmt = select(GraspSupplier.tax_code).where(GraspSupplier.tax_code == j_args['tax_code']) 
-#     with  Session(engine) as se:
-#         qry = se.scalars(stmt).first()
-#         if qry:
-#             message['code'] = 200
-#             message['in'] = 1
-#             message['no_in'] = 0        
-#             message['msg'] = f"已存在供应商 {j_args['tax_code']}"
-#         else:
-#             # 从redis里取sup_no 有就更新 没有报错
-#             sup_no = supSwap(j_args['tax_code'])
-#             if not sup_no :
-#                 message['msg'] = '缓存REDIS中未取到 供应商NO'
-#                 return message
-#             # 插入供应商
-#             si = insert(GraspSupplier).values(sid=SID, sup_no=sup_no, sup_id = sup_no, sup_sname= j_args['sup_name'],addr=j_args['addr'],tel=j_args['tel'],
-#             remark = 'grasp 插入供应商')
-#             try:
-#                 se.execute(si)
-#                 se.commit()
-#                 message['in'] = 0
-#                 message['no_in'] = 1
-#                 message['code'] = 200
-#             except Exception as e:
-#                 se.rollback()
-#                 message['msg'] = '新增供应商出错'
-#                 message['remark'] = str(e)
-#     return message
 
 
 # # def proToRedis(grasp_pro = None,time_expire = None):
@@ -149,7 +102,7 @@ def invCheck(arg_list):
 
 
 # 名称替换NO
-def supSwap(sup_tax_code:str)->int:
+def swapSup(sup_tax_code:str)->int:
     stmt = select(GraspSupplier.sup_no).where(GraspSupplier.social_credit_code == sup_tax_code) 
     with  Session(engine()) as se:
         sup_no = se.scalars(stmt).first()
@@ -157,7 +110,7 @@ def supSwap(sup_tax_code:str)->int:
         sup_no = 0
     return sup_no
 
-def proSwap(grasp_pro:str)->int:
+def swapPro(grasp_pro:str)->int:
     stmt = select(GraspProduct.pro_no).where(GraspProduct.grasp_pro == grasp_pro) 
     with  Session(engine()) as se:
         pro_no = se.scalars(stmt).first()
@@ -165,6 +118,13 @@ def proSwap(grasp_pro:str)->int:
         pro_no = 0
     return pro_no
 
+def swapBra(bra_name:str)->int:
+    stmt = select(GraspBranch.bra_no).where(GraspBranch.bra_name == bra_name) 
+    with  Session(engine()) as se:
+        bra_no = se.scalars(stmt).first()
+    if not bra_no:
+        bra_no = 0
+    return bra_no
 
     # try:
     #     if rs.exists('grasp_pro'):
@@ -193,16 +153,16 @@ def proSwap(grasp_pro:str)->int:
 
 
 # 生成供应商发票商品单据
-def graspSupInvStatus(hdr_ls,dtl_ls):
+def graspInvSupStatus(hdr_ls,dtl_ls):
     message = MESSAGE.copy()
     message['fun'] = 'graspSupInvStatus'
     log.debug(f">>> {message['fun']} 生成供应商发票商品单据 {hdr_ls}")
     
     with engine().connect() as conn:
-        res_hdr = conn.execute(
+        res_hdr = conn.execute(  # noqa: F841
             insert(GraspBlInvsupHdr).values(sid=SID),hdr_ls
         )
-        res_dtl = conn.execute(
+        res_dtl = conn.execute(  # noqa: F841
             insert(GraspBlInvsupDtl).values(sid=SID),dtl_ls
         )
         try:
@@ -216,27 +176,23 @@ def graspSupInvStatus(hdr_ls,dtl_ls):
     return message   
 
 
-# # 更新门店发票商品单据状态
-# def graspBraInvStatus(hdr_ls,dtl_ls):
-#     message = MESSAGE.copy()
-#     message['fun'] = 'graspBraInvStatus'
-#     log.debug(f">>> {message['fun']} 更新门店发票商品单据状态 ")
+# 更新门店发票商品单据状态
+def graspInvBraStatus(hdr_ls,dtl_ls):
+    message = MESSAGE.copy()
+    message['fun'] = 'graspBraInvStatus'
+    log.debug(f">>> {message['fun']} 更新门店发票商品单据状态 ")
     
-#     with engine.connect() as conn:
-#         res_hdr = conn.execute(
-#             insert(GraspBlInvbraHdr).values(sid=SID),hdr_ls
-#         )
-#         res_dtl = conn.execute(
-#             insert(GraspBlInvbraDtl).values(sid=SID),dtl_ls
-#         )
-#         try:
-#             conn.commit()
-#             message['code'] = 200
-#         except Exception as e:
-#             conn.rollback()
-#             message['msg'] = '更新单据失败'
-#             message['Exception'] = str(e)
-#     return message   
+    with engine().connect() as conn:
+        conn.execute(insert(GraspBlInvbraHdr).values(sid=SID),hdr_ls)
+        conn.execute(insert(GraspBlInvbraDtl).values(sid=SID),dtl_ls)
+        try:
+            conn.commit()
+            message['code'] = 200
+        except Exception as e:
+            conn.rollback()
+            message['msg'] = '更新单据失败'
+            message['Exception'] = str(e)
+    return message   
 
 
 # def cortSwap(cort_tax=None):
@@ -247,40 +203,29 @@ def graspSupInvStatus(hdr_ls,dtl_ls):
 
 
 
-# # 取门店信息 从REDIS取  返回一个DICT 和 一个子DICT
-# def braNoInfo(bra_no):
-#     bra_dict ={}
-#     bra_key = f'bra_no:{bra_no}'
-#     try:
-#         if rs.exists(bra_key):
-#             bra_dict['sid'] = rs.hmget(bra_key,'sid')
-#             bra_dict['bra_no']  = rs.hmget(bra_key,'bra_no')
-#             bra_dict['bra_name'] = rs.hmget(bra_key,'bra_name')
-#             bra_dict['tax_code'] = rs.hmget(bra_key,'tax_code')
-#             bra_dict['addr']    = rs.hmget(bra_key,'fi_addr')
-#             bra_dict['tel']     = rs.hmget(bra_key,'fi_tel')
-#             bra_dict['accounts_bank'] = rs.hmget(bra_key,'accounts_bank')
-#             bra_dict['accounts_code'] = rs.hmget(bra_key,'accounts_code')
-#     except Exception as e:
-#         log.error(str(e))
-#     return bra_dict
+# 取门店信息 从REDIS取  返回一个DICT 和 一个子DICT
+def braNoInfo(bra_no)-> dict:
+    stmt = select(GraspBranch).where(GraspBranch.bra_no == bra_no)
+    with  Session(engine()) as se:
+        j_ = {'bra_no':bra_no}
+        qry = se.scalars(stmt).first()
+        j_['bra_name'] = qry.bra_name
+        j_['tax_code'] = qry.tax_code
+        j_['fi_addr'] = qry.fi_addr
+        j_['fi_tel'] = qry.fi_tel
+        j_['accounts_bank'] = qry.accounts_bank
+        j_['accounts_code'] = qry.accounts_code
+        return j_
 
 
-# def proNoInfo(pro_no):
-#     log.debug(f"proNoInfo {pro_no}")
-#     qry_list = []
-#     res = {}
-#     stmt = select(GraspProduct).where(GraspProduct.pro_no == pro_no) 
-#     with engine.connect() as cur:
-#         ds = cur.execute(stmt).fetchone()
-#         if ds:
-#             return ds._asdict()
-#             # for row in ds:
-#             #     res = row._asdict()
-#             #     log.debug(res)
-#             #     return res
-#         else:
-#             return {}
+def proNoInfo(grasp_pro):
+    stmt = select(GraspProduct).where(GraspProduct.grasp_pro == grasp_pro) 
+    with engine().connect() as cur:
+        ds = cur.execute(stmt).fetchone()
+        if ds:
+            return ds._asdict()
+        else:
+            return {}
 
 
 
@@ -303,7 +248,7 @@ def supChkAndIns(j_args)-> dict:
         si = insert(GraspSupplier).values(sid=SID, cort_no=j_args['cort_no'],
         sup_name= j_args['sup_name'],sup_sname= j_args['sup_name'],
         social_credit_code= j_args['tax_code'], tax_code= j_args['tax_code'],
-        addr = j_args.get('addr',''),tel = j_args.get('tel',''),
+        fi_addr = j_args.get('fi_addr',''),fi_tel = j_args.get('fi_tel',''),
         accounts_bank = j_args.get('accounts_bank',''), accounts_code = j_args.get('accounts_code',''))
         try:
             se.execute(si)
