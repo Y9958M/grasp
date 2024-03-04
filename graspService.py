@@ -251,7 +251,7 @@ class GRASPService(object):
 
 
     @rpc
-    @msgWrapper(ldt=20240229,s_func_remark='供应商单据生成')
+    @msgWrapper(ldt=20240229,s_func_remark='门店单据生成')
     def cBlInvBraUp(self, j_args):
         message = MESSAGE.copy()
         # 检查入参
@@ -357,6 +357,32 @@ class GRASPService(object):
         message['bill_list'] = bill_list
         return message
 
+
+    @rpc
+    @msgWrapper(ldt=20240304,s_func_remark='删除单据')
+    def cBlDel(self, lj_args):
+        message = MESSAGE.copy()
+        rc_continue = 0 # 非法的数量
+        rc_in = 0       # 存在的数量
+        rc_sucess = 0   # 插入的数量
+        
+        for j_ in lj_args:
+            if 'grasp_pro' in j_:
+                message.update(proChkAndIns(j_))
+                log.debug(message)
+                if message['code'] > 200:
+                    return message
+                else:
+                    rc_in += message['in']
+                    rc_sucess += message['no_in']
+            else:
+                rc_continue += 1
+                continue
+
+        message['msg'] = f"非法 记录数:{rc_continue} 存在 记录数：{rc_in} 插入 成功数：{rc_sucess}"
+        message['count'] = rc_continue + rc_sucess + rc_in
+        return message
+    
     @rpc    # 通用入账
     @msgWrapper(ldt=20240229,s_func_remark='通用入账')
     def cGraspAccount(self, billid:int,actid:int):

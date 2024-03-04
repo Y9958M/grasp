@@ -103,6 +103,18 @@ def msgWrapper(ldt:int,s_func_remark=''):
     return reMsg
 
 
+def l2d(j_ds):
+    if 'data' not in j_ds:
+        return j_ds
+    if 'fields' not in j_ds['data'] or 'datalist' not in j_ds['data']:
+        return j_ds
+    fields = j_ds['data']['fields']
+    datalist = j_ds['data']['datalist']
+    l_ds = [dict(zip(fields, sublist)) for sublist in datalist]
+    j_ds['data']['datalist'] = l_ds
+    return j_ds
+
+
 def engine(DB=PROJECT.lower(),LINK=""):
     LINK = LINK if LINK else PROJECT
     JDBC ={'MYSQL':'mysql+pymysql','MSSQL':'mssql+pymssql'}
