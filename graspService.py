@@ -232,8 +232,8 @@ class GRASPService(object):
             row_dic['spec'] = dic['spec']
             row_dic['units'] = dic['units']
             row_dic['qty_pur'] = dic['qty_pur']
-            row_dic['price_pur'] = dic['price_pur']
-            row_dic['amt'] = dic['amt']
+            row_dic['price_pur_excl'] = dic['price_pur']
+            row_dic['amt_excl'] = dic['amt']
             row_dic['tax'] = dic['tax']
             row_dic['rat_tax_pur'] = dic['rat_tax_pur']
             row_dic['flow_no'] = dic['flow_no']
@@ -332,14 +332,14 @@ class GRASPService(object):
             row_dic['spec'] = j_prd['spec']
             row_dic['units'] = j_prd['units']
             qty = dic['qty_sale']
-            price = float(j_prd['price_sale'])
+            price = float(j_prd['price_sale_excl'])
             rat_tax_sale = j_prd['rat_tax_sale']
             if rat_tax_sale > 30:
                 message['msg'] = f'税率异常为{rat_tax_sale} 请至开票商品处修改'
                 return message
             row_dic['qty_sale'] = qty
-            row_dic['price_sale'] = price
-            row_dic['amt'] = price * qty
+            row_dic['price_sale_excl'] = price
+            row_dic['amt_excl'] = price * qty
             row_dic['tax'] = rat_tax_sale * price * qty/100   # 20220611 row_dic['tax'] = sale_ratio * price * qty/(100 + sale_ratio)
             row_dic['rat_tax_sale'] = rat_tax_sale
             row_dic['flow_no'] = dic['flow_no']
@@ -357,31 +357,6 @@ class GRASPService(object):
         message['bill_list'] = bill_list
         return message
 
-
-    @rpc
-    @msgWrapper(ldt=20240304,s_func_remark='删除单据')
-    def cBlDel(self, lj_args):
-        message = MESSAGE.copy()
-        rc_continue = 0 # 非法的数量
-        rc_in = 0       # 存在的数量
-        rc_sucess = 0   # 插入的数量
-        
-        for j_ in lj_args:
-            if 'grasp_pro' in j_:
-                message.update(proChkAndIns(j_))
-                log.debug(message)
-                if message['code'] > 200:
-                    return message
-                else:
-                    rc_in += message['in']
-                    rc_sucess += message['no_in']
-            else:
-                rc_continue += 1
-                continue
-
-        message['msg'] = f"非法 记录数:{rc_continue} 存在 记录数：{rc_in} 插入 成功数：{rc_sucess}"
-        message['count'] = rc_continue + rc_sucess + rc_in
-        return message
     
     @rpc    # 通用入账
     @msgWrapper(ldt=20240229,s_func_remark='通用入账')

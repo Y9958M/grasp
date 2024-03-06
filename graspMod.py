@@ -12,16 +12,16 @@ class GraspBlInvbraDtl(Base):
         Index('index_billid', 'sid', 'billid'),
     )
 
-    billid = mapped_column(BIGINT(18), nullable=False, comment='单据号2位业务标识 6位日期 2位类型 7位流水 1位星期')
+    billid = mapped_column(BIGINT(18), nullable=False, comment='单据号')
     pro_no = mapped_column(BIGINT(18), nullable=False, comment='货物编码')
     pro_name = mapped_column(String(255), nullable=False, comment='货物名称')
     spec = mapped_column(String(255), nullable=False, server_default=text("''"), comment='货物规格')
     units = mapped_column(String(255), nullable=False, server_default=text("''"), comment='单位')
     qty_sale = mapped_column(DECIMAL(18, 3), nullable=False, comment='数量')
-    price_sale = mapped_column(DECIMAL(18, 12), nullable=False, comment='采购单价')
-    amt = mapped_column(DECIMAL(18, 2), nullable=False, comment='金额')
+    price_sale_excl = mapped_column(DECIMAL(18, 12), nullable=False, comment='销售未税价')
+    amt_excl = mapped_column(DECIMAL(18, 2), nullable=False, comment='未税金额')
     tax = mapped_column(DECIMAL(18, 2), nullable=False, comment='税额')
-    rat_tax_sale = mapped_column(TINYINT(4), nullable=False, comment='采购税率')
+    rat_tax_sale = mapped_column(TINYINT(4), nullable=False, comment='销售税率')
     flow_no = mapped_column(INTEGER(4), nullable=False, server_default=text("'0'"), comment='排序')
     remark = mapped_column(String(255), nullable=False, server_default=text("''"), comment='备注')
     sid = mapped_column(INTEGER(1), nullable=False, server_default=text("'0'"), comment='数据标识 0不生效 1生产 2测试 3 作废')
@@ -72,8 +72,8 @@ class GraspBlInvsupDtl(Base):
     spec = mapped_column(String(255), nullable=False, comment='货物规格')
     units = mapped_column(String(255), nullable=False, comment='单位')
     qty_pur = mapped_column(DECIMAL(18, 3), nullable=False, comment='数量')
-    price_pur = mapped_column(DECIMAL(18, 12), nullable=False, comment='采购单价')
-    amt = mapped_column(DECIMAL(18, 2), nullable=False, comment='金额')
+    price_pur_excl = mapped_column(DECIMAL(18, 12), nullable=False, comment='采购未税价')
+    amt_excl = mapped_column(DECIMAL(18, 2), nullable=False, comment='未税金额')
     tax = mapped_column(DECIMAL(18, 2), nullable=False, comment='税额')
     rat_tax_pur = mapped_column(TINYINT(4), nullable=False, comment='采购税率')
     flow_no = mapped_column(INTEGER(4), nullable=False, comment='排序')
@@ -172,14 +172,14 @@ class GraspProduct(Base):
     pro_name = mapped_column(String(36), nullable=False, server_default=text("''"), comment='商品名称')
     spec = mapped_column(String(36), nullable=False, server_default=text("''"), comment='规格')
     units = mapped_column(String(36), nullable=False, server_default=text("''"), comment='单位')
-    price_pur = mapped_column(DECIMAL(18, 12), nullable=False, server_default=text("'0.000000000000'"), comment='采购价 格')
+    price_pur_excl = mapped_column(DECIMAL(18, 12), nullable=False, server_default=text("'0.000000000000'"), comment='采购未税价')
     rat_tax_pur = mapped_column(SMALLINT(3), nullable=False, comment='采购税率')
     rat_tax_sale = mapped_column(SMALLINT(3), nullable=False, comment='销售税率')
     remark = mapped_column(String(255), nullable=False, server_default=text("''"), comment='备注')
     sid = mapped_column(TINYINT(4), nullable=False, server_default=text("'0'"), comment='数据标识 0不生效 1生产 2测试 3 作废')
     ldt = mapped_column(DateTime, nullable=False, server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'), comment='更新日期')
     grasp_pro = mapped_column(String(255), Computed('(concat(`pro_name`,`spec`,`units`))', persisted=False), comment='商品')
-    price_sale = mapped_column(DECIMAL(18, 12), Computed('((`price_pur` * 1.03))', persisted=False), comment='销售价格')
+    price_sale_excl = mapped_column(DECIMAL(18, 12), Computed('((`price_pur_excl` * 1.03))', persisted=False), comment='销售未税价')
 
 
 class GraspSupplier(Base):
@@ -230,4 +230,3 @@ class GraspWba(Base):
     sid = mapped_column(INTEGER(1), nullable=False, server_default=text("'0'"), comment='数据标识 0不生效 1生产 2测试 3 作废')
     id = mapped_column(BIGINT(20), primary_key=True, comment='序号')
     ldt = mapped_column(DateTime, nullable=False, server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'), comment='更新时间')
-    

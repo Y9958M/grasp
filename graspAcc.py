@@ -141,8 +141,8 @@ def graspAccountMain(billid,act_no=0):
 				,max(b1.spec) spec
 				,max(b1.units) units
 				,sum(b1.qty_{bkk}) qty
-				,max(b1.price_{bkk}) price
-				,sum(b1.amt) amt
+				,max(b1.price_{bkk}_excl) price
+				,sum(b1.amt_excl) amt
 				,sum(b1.tax) tax
 				,max(b1.rat_tax_{bkk}) rat_tax
         FROM {table_hdr} a1 INNER JOIN {table_dtl} b1 ON a1.sid=b1.sid AND a1.billid = b1.billid
