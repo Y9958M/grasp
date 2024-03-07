@@ -9,8 +9,8 @@ from eventlet import tpool  # type: ignore
 from nameko.dependency_providers import DependencyProvider  # type: ignore
 from nameko.rpc import rpc, RpcProxy  # type: ignore
 
-from graspBasic import HandleLog,msgWrapper,MESSAGE
-from graspFun import supChkAndIns, proChkAndIns, invCheck,swapSup,swapPro,graspInvSupStatus,graspInvBraStatus,braNoInfo,proNoInfo
+from graspBasic import HandleLog,msgWrapper,l2d,MESSAGE
+from graspFun import supChkAndIns, proChkAndIns, proEdit,blInvBraEdit,invCheck,swapSup,swapPro,graspInvSupStatus,graspInvBraStatus,braNoInfo,proNoInfo
 from graspAcc import graspAccountMain
 
 log = HandleLog('grasp-service')
@@ -96,7 +96,7 @@ class GRASPService(object):
 
     # grasp ----------lj_args [{},{}]----------------------------------------------------------------------
     @rpc
-    @msgWrapper(ldt=20240228,s_func_remark='供应商信息')
+    @msgWrapper(ldt=20240228,s_func_remark='新增供应商信息')
     def cInfoSup(self, lj_args=[]):    
         message = MESSAGE.copy()
         rc_continue = 0 # 非法的数量
@@ -119,7 +119,7 @@ class GRASPService(object):
         return message
 
     @rpc
-    @msgWrapper(ldt=20240229,s_func_remark='商品信息')
+    @msgWrapper(ldt=20240229,s_func_remark='新增商品信息')
     def cInfoPro(self, lj_args):
         message = MESSAGE.copy()
         rc_continue = 0 # 非法的数量
@@ -142,6 +142,12 @@ class GRASPService(object):
         message['msg'] = f"非法 记录数:{rc_continue} 存在 记录数：{rc_in} 插入 成功数：{rc_sucess}"
         message['count'] = rc_continue + rc_sucess + rc_in
         return message
+
+    @rpc
+    @msgWrapper(ldt=20240307,s_func_remark='编辑商品信息')
+    def cInfoProEdit(self,j_args: dict):
+        return proEdit(j_args)
+
 
     @rpc
     @msgWrapper(ldt=20240229,s_func_remark='供应商单据生成')
@@ -358,8 +364,30 @@ class GRASPService(object):
         return message
 
     
+    @rpc
+    @msgWrapper(ldt=20240307,s_func_remark='编辑门店开票商品数量')
+    def cBlInvBraEdit(self,j_args: dict):
+        message = MESSAGE.copy()
+        i_billid = j_args.get('billid',0)
+        try:
+            j_ym_res = l2d(json.loads(self.YM.cBillInfo(i_billid)))
+            if j_ym_res['code']> 200:
+                message.update({'msg':'通用单据取值失败'})
+                log.error(j_ym_res)
+                return message
+            else:
+                log.debug(j_ym_res,'j_ym_res')
+                blsid = j_ym_res['data']['datalist'][0].get('blsid','-99')
+        except Exception as e:
+            message.update({'msg':str(e)})
+            log.error(message)
+            return message
+        if blsid == 1:
+            return blInvBraEdit(j_args)
+        else:
+            message.update({'msg':f'单据{i_billid} 状态为{blsid} 不允许编辑'})
+
     @rpc    # 通用入账
     @msgWrapper(ldt=20240229,s_func_remark='通用入账')
     def cGraspAccount(self, billid:int,actid:int):
         return graspAccountMain(billid,actid)
-

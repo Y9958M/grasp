@@ -32,28 +32,6 @@ def invCheck(arg_list):
     return message
 
 
-
-# # def proToRedis(grasp_pro = None,time_expire = None):
-# #     message = MESSAGE.copy()
-# #     message['fun'] = 'proToRedis'
-# #     log.debug(f">>> {message['fun']} 更新 REDIS ")
-# #     if not grasp_pro: 
-# #         pipe.delete('grasp_pro')
-# #     with  Session(engine()) as se:
-# #         stmt = select(GraspProduct).where(GraspProduct.pro == grasp_pro) if grasp_pro else select(GraspProduct)
-# #         res = se.execute(stmt).scalars().fetchall()
-# #         if not res:
-# #             return False
-# #     for row in res:
-# #         pipe.hset('grasp_pro',str(row.pro),str(row.pro_no))
-# #     pipe.execute()
-# #     if time_expire is not None:
-# #         pipe.expire('grasp_pro', time_expire)
-# #     return True
-
-
-
-
 # # 更新 开票商品表 数据库保证唯一 ID自增长
 # def graspProChkAndIns(j_args):
 #     message = MESSAGE.copy()
@@ -125,31 +103,6 @@ def swapBra(bra_name:str)->int:
     if not bra_no:
         bra_no = 0
     return bra_no
-
-    # try:
-    #     if rs.exists('grasp_pro'):
-    #         _b = rs.hget('grasp_pro',grasp_pro)
-    #         if _b:
-    #             return _b
-    #         else:
-    #             with Session(engine()) as se:
-    #                 stmt = select(GraspProduct.pro_no).where(GraspProduct.pro == grasp_pro)
-    #                 # stmt = select(t_v_pro.c.pro_no).where(t_v_pro.c.barcode == barcode)
-    #                 pro_no = se.scalars(stmt).first()
-    #                 log.info(pro_no)
-    #                 if pro_no:
-    #                     rs.hset('barcode',grasp_pro,pro_no)
-    #                     return pro_no
-    #                 else:
-    #                     log.warning(f"grasp_product not {grasp_pro}")
-    #                     return None
-    #     else:
-    #         log.error(f"barcode {grasp_pro} fail")
-    #         return None
-    # except Exception as e:
-    #     log.error(f"proSwap {str(e)}")
-    #     return None
-
 
 
 # 生成供应商发票商品单据
@@ -291,112 +244,59 @@ def proChkAndIns(j_args)-> dict:
             log.error(message)
     return message
 
+# 编辑 商品 信息
+def proEdit(j_args)-> dict:
+    message = MESSAGE.copy()
+    message['fun'] = 'proEdit'
+    log.debug(f">>> {message['fun']} 编辑 商品 信息 {j_args}")
 
-# def socialCreditCodeToRedis(time_expire =None):
-#     message = MESSAGE.copy()
-#     message['fun'] = 'socialCreditCodeToRedis'
-#     log.debug(f">>> {message['fun']} 更新 REDIS ")
-
-#     with  Session(engine()) as se:
-#         res = se.execute(select(GraspSupplier)).scalars().fetchall()
-#     for row in res:
-#         pipe.hmset('social_credit_code', {str(row.social_credit_code):str(row.sup_no)})
-#         # log.debug(maps)
-#     pipe.execute()
-#     if time_expire is not None:
-#         pipe.expire('social_credit_code', time_expire)
-#     return True
-    # log.debug(res)
-    #   r.expire("list5", time=3)
-    #   删除 hdel(name,*keys)
-    #   存在 hexists(name, key)
-    #   hvals(name)     得到所有的value（类似字典的取所有value）
-    #   hkeys(name)     得到所有的keys（类似字典的取所有keys）
-    #   hlen(name)      得到所有键值对的格式 hash长度
-    #   hgetall(name)   取出所有的键值对
-    #   hmget(name, keys, *args)
-    #     print(r.hget("hash2", "k2"))  # 单个取出"hash2"的key-k2对应的value
-    # print(r.hmget("hash2", "k2", "k3"))  # 批量取出"hash2"的key-k2 k3对应的value --方式1
-    # print(r.hmget("hash2", ["k2", "k3"]))  # 批量取出"hash2"的key-k2 k3对应的value --方式2
-    # redis.select(8);//使用第8个库
-    # redis.flushDB();//清空第8个库所有数据 .where(GraspProduct.pro_id == qry['pro_id'])
-
+    se = Session(engine())
+    stmt = select(GraspProduct).where(GraspProduct.pro_no == j_args.get('pro_no',0)).where(GraspProduct.sid == j_args.get('sid',0))
+    se_pro = se.scalars(stmt).first()
+    if se_pro:
+        try: # 没传的值就不更新了
+            if s:=j_args.get('price_pur_excl',''):
+                se_pro.price_pur_excl = s
+            if s:=j_args.get('rat_tax_pur',''):
+                se_pro.rat_tax_pur = s
+            if s:=j_args.get('rat_tax_sale',''):
+                se_pro.rat_tax_sale = s
+            if s:=j_args.get('userid',''):
+                se_pro.remark = f"{s} 从{j_args.get('code_from','')} 更新"
+            se.commit()
+            message.update({'code':200,'msg':f"更新 {j_args['pro_no']} 成功"})
+        except Exception as e:
+            message.update({'msg':str(e)})
+            log.warning(message,'更新异常')
+    else:
+        message.update({'msg':f"未查到记录 {j_args['pro_no']}"})
+        log.warning(message,'无值')
+    return message
 
 
-# def braToRedis(time_expire =None):
-#     message = MESSAGE.copy()
-#     message['fun'] = 'braToRedis'
-#     log.debug(f">>> {message['fun']} BRA更新 REDIS ")
-#     bra_info = ""
-#     with  Session(engine) as se:
-#         res = se.execute(select(GraspBranch)).scalars().fetchall()
-#     for row in res:
-#         bra_info =f"bra_no:{row.bra_no}"
-#         pipe.hmset(bra_info, {'sid':str(row.sid)})
-#         pipe.hmset(bra_info, {'cort_no':str(row.cort_no)})
-#         pipe.hmset(bra_info, {'bra_no':str(row.bra_no)})
-#         if row.bra_id: pipe.hmset(bra_info, {'bra_id':str(row.bra_id)})
-#         pipe.hmset(bra_info, {'bra_name':str(row.bra_name)})
-#         pipe.hmset(bra_info, {'bra_sname':str(row.bra_sname)})
-#         if row.type_no: pipe.hmset(bra_info, {'type_no':str(row.type_no)})
-#         if row.status_no:pipe.hmset(bra_info, {'status_no':str(row.status_no)})
-#         if row.tax_code: pipe.hmset(bra_info, {'tax_code':str(row.tax_code)})
-#         if row.accounts_bank: pipe.hmset(bra_info, {'accounts_bank':str(row.accounts_bank)})
-#         if row.accounts_code: pipe.hmset(bra_info, {'accounts_code':str(row.accounts_code)})
-#         if row.fi_addr: pipe.hmset(bra_info, {'fi_addr':str(row.fi_addr)})
-#         if row.fi_tel: pipe.hmset(bra_info, {'fi_tel':str(row.fi_tel)})
-#         if row.open_date: pipe.hmset(bra_info, {'open_date':str(row.open_date)})
-#         if row.total_area: pipe.hmset(bra_info, {'total_area':str(row.total_area)})
-#         # log.debug(row.pro_no)
-#     pipe.execute()
-#     if time_expire is not None:
-#         pipe.expire(bra_info, time_expire)
-    
-#     # log.debug(res)
-#     return True
+# 编辑 商品 信息
+def blInvBraEdit(j_args)-> dict:
+    message = MESSAGE.copy()
+    message['fun'] = 'blInvBraEdit'
+    log.debug(f">>> {message['fun']} 编辑 门店开票商品 信息 {j_args}")
 
-
-# 从后台拉数据缓存到CMM中
-# def sqlidToRedis(rs_key :str,sqlid :str,time_expire =None):
-#     message = {'code':400,'msg':'缓存处理异常'}
-#     message['fun'] = 'sqlidToRedis'
-#     log.debug(f">>> {message['fun']} 更新 REDIS SQLID= {sqlid}")
-#     # ( ˇˍˇ )调用通用查询 
-#     res = json.loads(msgJson(commonQueryKV({'sqlid':sqlid})))
-#     if res['code'] > 200:
-#         return res
-#     for row in res['data']['datalist']:
-#         bra_info =f"{rs_key}:{row[rs_key]}"
-#         for k,v in row.items():
-#             if v:
-#                 pipe.hmset(bra_info, {k:v})
-#         if time_expire is not None:
-#             pipe.expire(bra_info, time_expire)
-#     pipe.execute()
-#     message['code'] = 200
-#     return message
-
-
-# def billNo(bill_key:int,typeid=1,proj_name="REDIS",time_expire=60*60*24):
-#     bbkkyymmdd = f"{bill_key}{typeid}{time.strftime('%y%m%d', time.localtime())}"
-#     redis_pool = redis.ConnectionPool(
-#         host    =   DB_LINK[proj_name]['HOST'],
-#         password =  DB_LINK[proj_name]['PWD'],
-#         port =      DB_LINK[proj_name]['PORT'],
-#         db =        DB_LINK[proj_name]['DB'],
-#         decode_responses=True,
-#         encoding='utf-8')
-#     rs = redis.Redis(connection_pool=redis_pool)
-#     try:
-#         if rs.exists(bbkkyymmdd):
-#             bk_series = rs.incr(bbkkyymmdd,amount=1)
-#         else:
-#             bk_series = 1
-#             rs.set(bbkkyymmdd,1)
-#             rs.expire(bbkkyymmdd, time_expire)
-#     except Exception as e:
-#         log.error(str(e))
-#         return 0
-
-#     res = f'{bbkkyymmdd}{str(bk_series).zfill(4)}{datetime.now().weekday() +1}'
-#     return int(res)
+    se = Session(engine())
+    stmt = select(GraspBlInvbraDtl).where(GraspBlInvbraDtl.id == j_args.get('id',0))
+    se_pro = se.scalars(stmt).first()
+    if se_pro:
+        try: # 没传的值就不更新了
+            if s:=j_args.get('qty_sale',0):
+                se_pro.qty_sale = s
+            if s:=j_args.get('price_sale_excl',0):
+                se_pro.price_sale_excl = s
+            if s:=j_args.get('userid',''):
+                se_pro.remark = f"{s} 从{j_args.get('code_from','')} 更新"
+            se.commit()
+            message.update({'code':200,'msg':"更新 成功"})
+        except Exception as e:
+            message.update({'msg':str(e)})
+            log.warning(message,'更新 异常')
+    else:
+        message.update({'msg':"未查到记录"})
+        log.warning(message,'无值')
+    return message

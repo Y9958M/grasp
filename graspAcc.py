@@ -98,6 +98,7 @@ def graspAccountMain(billid,act_no=0):
             elif act_no == 9:   # 动作 红冲
                 ACC = 1         # 反向 +
                 do_status_list = [6]
+                qty_b = False   # 20240307 门店红冲不检查库存
             else:
                 message['msg'] = f"未配置 {table_hdr} 入账类型 {type_no} 的入账动作 {act_no}"
                 return message
