@@ -1,0 +1,15 @@
+AMQP_URI: 'pyamqp://pro5677:pro5677@14.103.54.192:5677/tok'
+WEB_SERVER_ADDRESS: '14.103.54.192:15677'
+rpc_exchange: 'nameko-rpc'
+max_workers: 2
+parent_calls_tracked: 2
+
+LOGGING:
+    version: 1
+    handlers:
+        console:
+            class: logging.StreamHandler
+    root:
+        level: DEBUG
+        handlers: [console]
+        

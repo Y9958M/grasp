@@ -12,27 +12,15 @@ from logging.handlers import RotatingFileHandler
 # date    :2024-02-14
 # desc  : 管家婆
 
+DEF = {"BILL_KEY": {"OPL_BL_REP_HDR": 110, "GRASP_BL_INVBRA_HDR": 141, "GRASP_BL_INVSUP_HDR": 140}}
+PROJECT = "GRASP"
 # SID 环境标识 1生产 2测试 3删除 4作废 5本机开发 API 1 CMM 3 
-SID = 5
+SID = 2
 
 # 5本机
 if SID == 5:
-
     VER = 240214
-    PROJECT = "GRASP"
     CLIENT ="Dev:10.56"
-    MESSAGE = {
-        "code": 500,
-        "sid":  SID,
-        "count":  0,
-        "msg":  '',
-        "project":PROJECT,
-        "client":CLIENT,
-        "ver":VER,
-        "author":'姚鸣'
-    }
-
-    DEF = {"BILL_KEY": {"OPL_BL_REP_HDR": 110, "GRASP_BL_INVBRA_HDR": 141, "GRASP_BL_INVSUP_HDR": 140}}
     DB_LINK = {
         'GRASP':{
             "USE" : {},
@@ -50,15 +38,43 @@ if SID == 5:
             "TYPE": "REDIS"
         },
     }
-
 # 2测试 expire
 elif SID == 2:
-    pass
+    VER = 240214
+    CLIENT ="Beta:10.56"
+    DB_LINK = {
+        'GRASP':{
+            "USE" : {},
+            "TYPE": "MYSQL",
+            "HOST": "192.168.10.49",
+            "PORT": 3306,
+            "USER": "root",
+            "PWD": "shtm2022",
+        },
+        'REDIS': {
+            "DB": SID,
+            "HOST": "172.17.0.1",
+            "PWD": "shtm2022",
+            "PORT": 6378,
+            "TYPE": "REDIS"
+        },
+    }
 #   1生产
 elif SID == 1:
     pass
 else:
     pass
+
+MESSAGE = {
+    "code": 500,
+    "msg":  '',
+    "info":{
+        "sid":  SID,
+        "project":PROJECT,
+        "client":CLIENT,
+        "ver":VER,
+        "author":'姚鸣'},
+    }
 
 # -*- 把Date、DateTime类型数据转换成兼容Json的格式 -*-  json.dumps(result,cls=DateEncoder.DateEncoder) # 调用自定义类
 class DateEncoder(json.JSONEncoder):
@@ -88,7 +104,7 @@ def msgWrapper(ldt:int,s_func_remark=''):
     def reMsg(func):
         def wrapped_function(*args, **kwargs):
             j_msg = MESSAGE.copy()
-            j_msg['Fac'] = func.__name__
+            j_msg['info']['fac'] = func.__name__
             start_time = time.time()
             start_strftime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
@@ -97,7 +113,7 @@ def msgWrapper(ldt:int,s_func_remark=''):
             end_strftime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
             d_time = time.time() - start_time
             j_msg.update(j_res)
-            j_msg.update({'start_time':start_strftime,'end_time':end_strftime,'times':round(d_time,2),"ldt":ldt,'func_remark':s_func_remark})
+            j_msg['info'].update({'start_time':start_strftime,'end_time':end_strftime,'times':round(d_time,2),"ldt":ldt,'func_remark':s_func_remark})
             return msgJson(j_msg)
         return wrapped_function
     return reMsg

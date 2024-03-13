@@ -1,3 +1,5 @@
+# from sqlalchemy import create_engine
+# from sqlalchemy.orm import sessionmaker
 from sqlalchemy import Column, Computed, DECIMAL, DateTime, Enum, Index, String, text  # noqa: F401
 from sqlalchemy.dialects.mysql import BIGINT, INTEGER, SMALLINT, TINYINT
 from sqlalchemy.orm import Mapped, declarative_base, mapped_column
@@ -87,7 +89,7 @@ class GraspBlInvsupHdr(Base):
     __tablename__ = 'grasp_bl_invsup_hdr'
     __table_args__ = (
         Index('index_billid', 'billid', unique=True),
-        Index('index_idno', 'sid', 'inv_id', 'inv_no', unique=True)
+        Index('index_idno', 'inv_id', 'inv_no')
     )
 
     billid = mapped_column(BIGINT(18), nullable=False, comment='单据号2位业务标识 2位类型  6位日期 4位流水 1位星期(流水 支持自扩)')
@@ -230,3 +232,15 @@ class GraspWba(Base):
     sid = mapped_column(INTEGER(1), nullable=False, server_default=text("'0'"), comment='数据标识 0不生效 1生产 2测试 3 作废')
     id = mapped_column(BIGINT(20), primary_key=True, comment='序号')
     ldt = mapped_column(DateTime, nullable=False, server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'), comment='更新时间')
+
+
+# 连接数据库
+# DATABASE_URL = "mysql+pymysql://root:shtm2022@192.168.10.49:3306/grasp"
+# engine = create_engine(DATABASE_URL, echo=True)
+ 
+# 创建会话
+# Session = sessionmaker(bind=engine)
+# session = Session()
+ 
+# 创建所有表
+# Base.metadata.create_all(engine)

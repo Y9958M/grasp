@@ -144,9 +144,11 @@ class GRASPService(object):
         return message
 
     @rpc
-    @msgWrapper(ldt=20240307,s_func_remark='编辑商品信息')
+    @msgWrapper(ldt=20240313,s_func_remark='编辑商品信息')
     def cInfoProEdit(self,j_args: dict):
-        return proEdit(j_args)
+        message = proEdit(j_args)
+        message['params'] = j_args
+        return message
 
 
     @rpc
@@ -238,7 +240,7 @@ class GRASPService(object):
             row_dic['spec'] = dic['spec']
             row_dic['units'] = dic['units']
             row_dic['qty_pur'] = dic['qty_pur']
-            row_dic['price_pur_excl'] = dic['price_pur']
+            row_dic['price_pur_excl'] = dic['price_pur_excl']
             row_dic['amt_excl'] = dic['amt']
             row_dic['tax'] = dic['tax']
             row_dic['rat_tax_pur'] = dic['rat_tax_pur']
@@ -365,9 +367,11 @@ class GRASPService(object):
 
     
     @rpc
-    @msgWrapper(ldt=20240307,s_func_remark='编辑门店开票商品数量')
+    @msgWrapper(ldt=20240313,s_func_remark='编辑门店开票商品数量')
     def cBlInvBraEdit(self,j_args: dict):
         message = MESSAGE.copy()
+        message['params'] = j_args
+
         i_billid = j_args.get('billid',0)
         try:
             j_ym_res = l2d(json.loads(self.YM.cBillInfo(i_billid)))
@@ -383,11 +387,14 @@ class GRASPService(object):
             log.error(message)
             return message
         if blsid == 1:
-            return blInvBraEdit(j_args)
+            message.update(blInvBraEdit(j_args))
         else:
             message.update({'msg':f'单据{i_billid} 状态为{blsid} 不允许编辑'})
+        return message
 
     @rpc    # 通用入账
-    @msgWrapper(ldt=20240229,s_func_remark='通用入账')
+    @msgWrapper(ldt=20240313,s_func_remark='通用入账')
     def cGraspAccount(self, billid:int,actid:int):
-        return graspAccountMain(billid,actid)
+        message = graspAccountMain(billid,actid)
+        message['params'] = {'billid':billid,'actid':actid}
+        return message

@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from sqlalchemy import insert, select, text
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 from graspBasic import MESSAGE, SID, DEF, HandleLog, engine
 # from public import DEF
@@ -119,13 +119,13 @@ def graspAccountMain(billid,act_no=0):
         return message
 
     qty_txt = f"""
-        SELECT aa1.pro_no,b1.qty_aval - aa1.qty as qty
+        SELECT aa1.pro_no,aa1.pro_name,b1.qty_aval - aa1.qty as qty
         FROM (
-            SELECT a1.sid,a1.{'in_storage_no' if bkk == 'pur' else 'out_storage_no' },b1.pro_no,
+            SELECT a1.sid,b1.pro_name,a1.{'in_storage_no' if bkk == 'pur' else 'out_storage_no' },b1.pro_no,
             SUM(b1.qty_{bkk}) qty
             FROM {table_hdr} a1 INNER JOIN {table_dtl} b1 ON a1.sid = b1.sid AND a1.billid = b1.billid
             WHERE a1.sid = {SID} AND a1.billid = {billid}
-            GROUP BY a1.sid,a1.{'in_storage_no' if bkk == 'pur' else 'out_storage_no' },b1.pro_no
+            GROUP BY a1.sid,b1.pro_name,a1.{'in_storage_no' if bkk == 'pur' else 'out_storage_no' },b1.pro_no
         ) aa1 LEFT JOIN grasp_onhand b1 
         ON aa1.sid = b1.sid AND aa1.{'in_storage_no' if bkk == 'pur' else 'out_storage_no' } = b1.storage_no AND aa1.pro_no = b1.pro_no
         WHERE b1.qty_aval - aa1.qty < 0 
@@ -182,8 +182,8 @@ def graspAccountMain(billid,act_no=0):
                     for dic in qry_qty:
                         # log.debug(dic)
                         # err_msg += f"商品: {dic['pro_no']} 缺少数量: {str(dic['qty'])} ,"
-                        err_msg += f"商品: {dic[0]} 缺少数量: {str(dic[1])} ,"
-                    message['msg'] = f"单据库存校验不通过 前3个商品信息 {err_msg}"
+                        err_msg += f"{dic[1]} 缺:{str(dic[2])} ,"
+                    message['msg'] = err_msg
                     return message
             else:
                 conn.execute(text(begin_txt))

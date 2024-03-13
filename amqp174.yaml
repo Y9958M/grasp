@@ -1,0 +1,14 @@
+AMQP_URI: 'pyamqp://grasp:grasp@192.168.200.174:5677/shmart_lan_pro'
+WEB_SERVER_ADDRESS: '192.168.200.174:15677'
+rpc_exchange: 'nameko-rpc'
+max_workers: 2
+parent_calls_tracked: 4
+
+LOGGING:
+    version: 1
+    handlers:
+        console:
+            class: logging.StreamHandler
+    root:
+        level: ERROR
+        handlers: [console]
