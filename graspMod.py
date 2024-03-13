@@ -234,13 +234,13 @@ class GraspWba(Base):
     ldt = mapped_column(DateTime, nullable=False, server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'), comment='更新时间')
 
 
-# 连接数据库
-# DATABASE_URL = "mysql+pymysql://root:shtm2022@192.168.10.49:3306/grasp"
+# # 连接数据库
+# DATABASE_URL = "mysql+pymysql://root:shtm2022@192.168.200.174:3306/grasp"
 # engine = create_engine(DATABASE_URL, echo=True)
  
-# 创建会话
+# # 创建会话
 # Session = sessionmaker(bind=engine)
 # session = Session()
  
-# 创建所有表
+# # 创建所有表
 # Base.metadata.create_all(engine)
