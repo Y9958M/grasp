@@ -146,7 +146,7 @@ logging.logProcesses = False
 logging.thread = None  # type: ignore
 log_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'logs')  # log_path为存放日志的路径
 if not os.path.exists(log_path): os.mkdir(log_path)  # 若不存在logs文件夹，则自动创建  # noqa: E701
-s_log_file = os.path.join(log_path,f"plm-{datetime.now().strftime('%Y%m%d')}.log")
+s_log_file = os.path.join(log_path,f"{PROJECT.lower()}-{datetime.now().strftime('%Y%m%d')}.log")
 
 
 rs = redis.Redis(connection_pool=redis.ConnectionPool(
