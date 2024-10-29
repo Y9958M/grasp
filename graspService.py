@@ -182,7 +182,7 @@ class GRASPService(object):
         # log.debug(billid,'billid')
 
         for dic in j_args['tax_code_list']:
-            j_ym_res = json.loads(self.YM.cBillid('GRASP_BL_INVSUP_HDR',bltid))
+            j_ym_res = json.loads(self.YM.cBillid({'s_bill_key':'GRASP_BL_INVSUP_HDR','bltid':bltid}))
             if j_ym_res['code']> 200:
                 message.update({'msg':'通用单据取值失败'})
                 log.error(j_ym_res)
@@ -290,7 +290,7 @@ class GRASPService(object):
       
             # 没取到单号 没有就取缓存生成新单号
             if bra_no not in bra_bill_dic.keys():
-                j_ym_res = json.loads(self.YM.cBillid('GRASP_BL_INVBRA_HDR',bltid))
+                j_ym_res = json.loads(self.YM.cBillid({'s_bill_key':'GRASP_BL_INVBRA_HDR','bltid':bltid}))
                 if j_ym_res['code']> 200:
                     message.update({'msg':'通用单据取值失败'})
                     log.error(j_ym_res)
@@ -374,7 +374,7 @@ class GRASPService(object):
 
         i_billid = j_args.get('billid',0)
         try:
-            j_ym_res = l2d(json.loads(self.YM.cBillInfo(i_billid)))
+            j_ym_res = l2d(json.loads(self.YM.cBillInfo({'i_billid':i_billid})))
             if j_ym_res['code']> 200:
                 message.update({'msg':'通用单据取值失败'})
                 log.error(j_ym_res)

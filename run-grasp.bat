@@ -1,1 +1,1 @@
-nameko run --config amqpDev.yaml graspService:GRASPService
+nameko run --config amqpBeta.yaml graspService:GRASPService
