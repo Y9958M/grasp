@@ -15,7 +15,7 @@ from logging.handlers import RotatingFileHandler
 DEF = {"BILL_KEY": {"OPL_BL_REP_HDR": 110, "GRASP_BL_INVBRA_HDR": 141, "GRASP_BL_INVSUP_HDR": 140}}
 PROJECT = "GRASP"
 # SID 环境标识 1生产 2测试 3删除 4作废 5本机开发 API 1 CMM 3 
-SID = 5
+SID = 1
 
 # 5本机
 if SID == 5:
@@ -67,14 +67,14 @@ elif SID == 1:
         'GRASP':{
             "USE" : {},
             "TYPE": "MYSQL",
-            "HOST": "192.168.200.174",
+            "HOST": "192.168.10.222",
             "PORT": 3306,
             "USER": "root",
-            "PWD": "shtm2022",
+            "PWD": "shtm2023",
         },
         'REDIS': {
             "DB": SID,
-            "HOST": "172.17.0.1",
+            "HOST": "192.168.10.222",
             "PWD": "shtm2022",
             "PORT": 6378,
             "TYPE": "REDIS"

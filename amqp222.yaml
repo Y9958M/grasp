@@ -1,0 +1,14 @@
+AMQP_URI: 'pyamqp://grasp:grasp@192.168.10.222:5677/sh_mart'
+WEB_SERVER_ADDRESS: '192.168.10.222:15677'
+rpc_exchange: 'nameko-rpc'
+max_workers: 2
+parent_calls_tracked: 4
+
+LOGGING:
+    version: 1
+    handlers:
+        console:
+            class: logging.StreamHandler
+    root:
+        level: ERROR
+        handlers: [console]
